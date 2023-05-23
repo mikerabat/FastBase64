@@ -41,10 +41,13 @@ implementation
 {$ENDIF}
 
 
-// delphi 11.3 understands AVX -> enable the direct assembly stuff for Delphi 11
-{$IF CompilerVersion>=33}
-{$DEFINE DELPHIAVX}
+{$DEFINE AVXSUP} // enables the evaluation of the avx asm codes by the compiler (instead of the db variants)
+{$IFNDEF FPC}
+  {$IF CompilerVersion<34}
+  {$UNDEF AVXSUP}
+  {$IFEND}
 {$IFEND}
+
 
 {$IFDEF FPC} {$ASMMODE intel} {$S-} {$DEFINE DELPHIAVX} {$ENDIF}
 
@@ -72,31 +75,31 @@ asm
    // #### prepare
    sub rdx, 4;
 
-   {$IFDEF DELPHIAVX}vmovdqa ymm4, [r9 + TAVXEncodeConst.Lut1];{$ELSE}db $C4,$C1,$7D,$6F,$61,$40;{$ENDIF}
+   {$IFDEF AVXSUP}vmovdqa ymm4, [r9 + TAVXEncodeConst.Lut1];          {$ELSE}db $C4,$C1,$7D,$6F,$61,$40;{$ENDIF} 
 
    // first load is masked
-   {$IFDEF DELPHIAVX}vmovdqa ymm5, [r9 + TAVXEncodeConst.MaskMov];{$ELSE}db $C4,$C1,$7D,$6F,$29;{$ENDIF}
-   {$IFDEF DELPHIAVX}vmaskmovps ymm0, ymm5, [rdx];{$ELSE}db $C4,$E2,$55,$2C,$02;{$ENDIF}
+   {$IFDEF AVXSUP}vmovdqa ymm5, [r9 + TAVXEncodeConst.MaskMov];       {$ELSE}db $C4,$C1,$7D,$6F,$29;{$ENDIF} 
+   {$IFDEF AVXSUP}vmaskmovps ymm0, ymm5, [rdx];                       {$ELSE}db $C4,$E2,$55,$2C,$02;{$ENDIF} 
    sub r8, 32;
 
    @loop:
       // shuf
-      {$IFDEF DELPHIAVX}vpshufb ymm1, ymm0, [r9 + TAVXEncodeConst.Lut0];{$ELSE}db $C4,$C2,$7D,$00,$49,$20;{$ENDIF}
-      {$IFDEF DELPHIAVX}vpand ymm2, ymm1, [r9 + TAVXEncodeConst.Mask0];{$ELSE}db $C4,$C1,$75,$DB,$51,$60;{$ENDIF}
-      {$IFDEF DELPHIAVX}vpand ymm1, ymm1, [r9 + TAVXEncodeConst.Mask2];{$ELSE}db $C4,$C1,$75,$DB,$89,$A0,$00,$00,$00;{$ENDIF}
-      {$IFDEF DELPHIAVX}vpmulhuw ymm2, ymm2, [r9 + TAVXEncodeConst.Mask1];{$ELSE}db $C4,$C1,$6D,$E4,$91,$80,$00,$00,$00;{$ENDIF}
-      {$IFDEF DELPHIAVX}vpmullw ymm1, ymm1, [r9 + TAVXEncodeConst.Mask3];{$ELSE}db $C4,$C1,$75,$D5,$89,$C0,$00,$00,$00;{$ENDIF}
-      {$IFDEF DELPHIAVX}vpor ymm1, ymm1, ymm2;{$ELSE}db $C5,$F5,$EB,$CA;{$ENDIF}
+      {$IFDEF AVXSUP}vpshufb ymm1, ymm0, [r9 + TAVXEncodeConst.Lut0]; {$ELSE}db $C4,$C2,$7D,$00,$49,$20;{$ENDIF} 
+      {$IFDEF AVXSUP}vpand ymm2, ymm1, [r9 + TAVXEncodeConst.Mask0];  {$ELSE}db $C4,$C1,$75,$DB,$51,$60;{$ENDIF} 
+      {$IFDEF AVXSUP}vpand ymm1, ymm1, [r9 + TAVXEncodeConst.Mask2];  {$ELSE}db $C4,$C1,$75,$DB,$89,$A0,$00,$00,$00;{$ENDIF} 
+      {$IFDEF AVXSUP}vpmulhuw ymm2, ymm2, [r9 + TAVXEncodeConst.Mask1];{$ELSE}db $C4,$C1,$6D,$E4,$91,$80,$00,$00,$00;{$ENDIF} 
+      {$IFDEF AVXSUP}vpmullw ymm1, ymm1, [r9 + TAVXEncodeConst.Mask3];{$ELSE}db $C4,$C1,$75,$D5,$89,$C0,$00,$00,$00;{$ENDIF} 
+      {$IFDEF AVXSUP}vpor ymm1, ymm1, ymm2;                           {$ELSE}db $C5,$F5,$EB,$CA;{$ENDIF} 
 
-      {$IFDEF DELPHIAVX}vpsubusb ymm0, ymm1, [r9 + TAVXEncodeConst.N51];   {$ELSE}db $C4,$C1,$75,$D8,$81,$E0,$00,$00,$00;{$ENDIF} // indices
-      {$IFDEF DELPHIAVX}vpcmpgtb ymm2, ymm1, [r9 + TAVXEncodeConst.N25];   {$ELSE}db $C4,$C1,$75,$64,$91,$00,$01,$00,$00;{$ENDIF} //, ymm0;
+      {$IFDEF AVXSUP}vpsubusb ymm0, ymm1, [r9 + TAVXEncodeConst.N51]; {$ELSE}db $C4,$C1,$75,$D8,$81,$E0,$00,$00,$00;{$ENDIF} // indices
+      {$IFDEF AVXSUP}vpcmpgtb ymm2, ymm1, [r9 + TAVXEncodeConst.N25]; {$ELSE}db $C4,$C1,$75,$64,$91,$00,$01,$00,$00;{$ENDIF} //, ymm0;
 
-      {$IFDEF DELPHIAVX}vpsubb ymm0, ymm0, ymm2;{$ELSE}db $C5,$FD,$F8,$C2;{$ENDIF}
-      {$IFDEF DELPHIAVX}vpshufb ymm2, ymm4, ymm0;{$ELSE}db $C4,$E2,$5D,$00,$D0;{$ENDIF}
+      {$IFDEF AVXSUP}vpsubb ymm0, ymm0, ymm2;                         {$ELSE}db $C5,$FD,$F8,$C2;{$ENDIF} 
+      {$IFDEF AVXSUP}vpshufb ymm2, ymm4, ymm0;                        {$ELSE}db $C4,$E2,$5D,$00,$D0;{$ENDIF} 
 
-      {$IFDEF DELPHIAVX}vpaddb ymm0, ymm2, ymm1;{$ELSE}db $C5,$ED,$FC,$C1;{$ENDIF}
+      {$IFDEF AVXSUP}vpaddb ymm0, ymm2, ymm1;                         {$ELSE}db $C5,$ED,$FC,$C1;{$ENDIF} 
       // store
-      {$IFDEF DELPHIAVX}vmovdqu [rcx], ymm0;{$ELSE}db $C5,$FE,$7F,$01;{$ENDIF}
+      {$IFDEF AVXSUP}vmovdqu [rcx], ymm0;                             {$ELSE}db $C5,$FE,$7F,$01;{$ENDIF} 
 
       // adjust buffer
       add rcx, 32;
@@ -105,7 +108,7 @@ asm
       jl @loopEnd;
 
       // load next
-      {$IFDEF DELPHIAVX}vmovdqu ymm0, [rdx];{$ELSE}db $C5,$FE,$6F,$02;{$ENDIF}
+      {$IFDEF AVXSUP}vmovdqu ymm0, [rdx];                             {$ELSE}db $C5,$FE,$6F,$02;{$ENDIF} 
 
    // adjust len
    jmp @loop;
@@ -115,7 +118,7 @@ asm
    // build result -> the remaining bytes left
    mov rax, r8;
    add rax, 32;
-   {$IFDEF FPC}vzeroupper;{$ELSE}db $C5,$F8,$77;{$ENDIF}
+   {$IFDEF AVXSUP}vzeroupper;                                         {$ELSE}db $C5,$F8,$77;{$ENDIF} 
 end;
 
 {$ENDREGION}
@@ -142,48 +145,48 @@ asm
    mov rdx, rsi;
    {$ENDIF}
 
-   {$IFDEF DELPHIAVX}vmovupd dYmm8, ymm8;{$ELSE}db $C5,$7D,$11,$45,$DC;{$ENDIF}
-   {$IFDEF DELPHIAVX}vmovupd dYmm7, ymm7;{$ELSE}db $C5,$FD,$11,$7D,$BC;{$ENDIF}
-   {$IFDEF DELPHIAVX}vmovupd dYmm6, ymm6;{$ELSE}db $C5,$FD,$11,$75,$9C;{$ENDIF}
+   {$IFDEF AVXSUP}vmovupd dYmm8, ymm8;                                {$ELSE}db $C5,$7D,$11,$45,$DC;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd dYmm7, ymm7;                                {$ELSE}db $C5,$FD,$11,$7D,$BC;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd dYmm6, ymm6;                                {$ELSE}db $C5,$FD,$11,$75,$9C;{$ENDIF} 
 
 
    sub r8, 32;
-   {$IFDEF DELPHIAVX}vmovdqa ymm8, [r9 + TAVXDecodeConst.PermOut];{$ELSE}db $C4,$41,$7D,$6F,$81,$E0,$00,$00,$00;{$ENDIF}
+   {$IFDEF AVXSUP}vmovdqa ymm8, [r9 + TAVXDecodeConst.PermOut];       {$ELSE}db $C4,$41,$7D,$6F,$81,$E0,$00,$00,$00;{$ENDIF} 
 
-   {$IFDEF DELPHIAVX}vmovdqa ymm7, [r9 + TAVXDecodeConst.LutLo];{$ELSE}db $C4,$C1,$7D,$6F,$39;{$ENDIF}
-   {$IFDEF DELPHIAVX}vmovdqa ymm6, [r9 + TAVXDecodeConst.LutHi];{$ELSE}db $C4,$C1,$7D,$6F,$71,$20;{$ENDIF}
-   {$IFDEF DELPHIAVX}vmovdqa ymm5, [r9 + TAVXDecodeConst.LutRoll];{$ELSE}db $C4,$C1,$7D,$6F,$69,$40;{$ENDIF}
+   {$IFDEF AVXSUP}vmovdqa ymm7, [r9 + TAVXDecodeConst.LutLo];         {$ELSE}db $C4,$C1,$7D,$6F,$39;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovdqa ymm6, [r9 + TAVXDecodeConst.LutHi];         {$ELSE}db $C4,$C1,$7D,$6F,$71,$20;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovdqa ymm5, [r9 + TAVXDecodeConst.LutRoll];       {$ELSE}db $C4,$C1,$7D,$6F,$69,$40;{$ENDIF} 
 
    xor eax, eax;
 
    @loop:
        // load 32 bytes -> convert ascii to bytes
-       {$IFDEF DELPHIAVX}vmovupd ymm0, [rdx];{$ELSE}db $C5,$FD,$10,$02;{$ENDIF}
+       {$IFDEF AVXSUP}vmovupd ymm0, [rdx];                            {$ELSE}db $C5,$FD,$10,$02;{$ENDIF} 
 
-       {$IFDEF DELPHIAVX}vpsrld ymm1, ymm0, 4;{$ELSE}db $C5,$F5,$72,$D0,$04;{$ENDIF}
-       {$IFDEF DELPHIAVX}vpand ymm1, ymm1, [r9 + TAVXDecodeConst.Mask2F]; {$ELSE}db $C4,$C1,$75,$DB,$49,$60;{$ENDIF} // hi_nibbles
-       {$IFDEF DELPHIAVX}vpshufb ymm2, ymm6, ymm1;  {$ELSE}db $C4,$E2,$4D,$00,$D1;{$ENDIF} // hi
-       {$IFDEF DELPHIAVX}vpcmpeqb ymm3, ymm0, [r9 + TAVXDecodeConst.Mask2F];  {$ELSE}db $C4,$C1,$7D,$74,$59,$60;{$ENDIF} // eq2f
-       {$IFDEF DELPHIAVX}vpaddb ymm3, ymm3, ymm1;  {$ELSE}db $C5,$E5,$FC,$D9;{$ENDIF} // add epqf hi_nibbles
-       {$IFDEF DELPHIAVX}vpshufb ymm3, ymm5, ymm3;   {$ELSE}db $C4,$E2,$55,$00,$DB;{$ENDIF} // roll
+       {$IFDEF AVXSUP}vpsrld ymm1, ymm0, 4;                           {$ELSE}db $C5,$F5,$72,$D0,$04;{$ENDIF} 
+       {$IFDEF AVXSUP}vpand ymm1, ymm1, [r9 + TAVXDecodeConst.Mask2F];{$ELSE}db $C4,$C1,$75,$DB,$49,$60;{$ENDIF} // hi_nibbles
+       {$IFDEF AVXSUP}vpshufb ymm2, ymm6, ymm1;                       {$ELSE}db $C4,$E2,$4D,$00,$D1;{$ENDIF} // hi
+       {$IFDEF AVXSUP}vpcmpeqb ymm3, ymm0, [r9 + TAVXDecodeConst.Mask2F];{$ELSE}db $C4,$C1,$7D,$74,$59,$60;{$ENDIF} // eq2f
+       {$IFDEF AVXSUP}vpaddb ymm3, ymm3, ymm1;                        {$ELSE}db $C5,$E5,$FC,$D9;{$ENDIF} // add epqf hi_nibbles
+       {$IFDEF AVXSUP}vpshufb ymm3, ymm5, ymm3;                       {$ELSE}db $C4,$E2,$55,$00,$DB;{$ENDIF} // roll
 
-       {$IFDEF DELPHIAVX}vpand ymm4, ymm0, [r9 + TAVXDecodeConst.Mask2F]; {$ELSE}db $C4,$C1,$7D,$DB,$61,$60;{$ENDIF} // lo_nibbles
-       {$IFDEF DELPHIAVX}vpshufb ymm4, ymm7, ymm4;  {$ELSE}db $C4,$E2,$45,$00,$E4;{$ENDIF} // lo
+       {$IFDEF AVXSUP}vpand ymm4, ymm0, [r9 + TAVXDecodeConst.Mask2F];{$ELSE}db $C4,$C1,$7D,$DB,$61,$60;{$ENDIF} // lo_nibbles
+       {$IFDEF AVXSUP}vpshufb ymm4, ymm7, ymm4;                       {$ELSE}db $C4,$E2,$45,$00,$E4;{$ENDIF} // lo
 
        // test for an incorrect character
-       {$IFDEF DELPHIAVX}vptest ymm4, ymm2;{$ELSE}db $C4,$E2,$7D,$17,$E2;{$ENDIF}
+       {$IFDEF AVXSUP}vptest ymm4, ymm2;                              {$ELSE}db $C4,$E2,$7D,$17,$E2;{$ENDIF} 
        jnz @wrongEncoding;
 
-       {$IFDEF DELPHIAVX}vpaddb ymm0, ymm0, ymm3;{$ELSE}db $C5,$FD,$FC,$C3;{$ENDIF}
+       {$IFDEF AVXSUP}vpaddb ymm0, ymm0, ymm3;                        {$ELSE}db $C5,$FD,$FC,$C3;{$ENDIF} 
 
        // ###########################################
        // #### Reshuffle from 32 bytes to 24
-       {$IFDEF DELPHIAVX}vpmaddubsw ymm1, ymm0, [r9 + TAVXDecodeConst.Merge];{$ELSE}db $C4,$C2,$7D,$04,$89,$80,$00,$00,$00;{$ENDIF}
-       {$IFDEF DELPHIAVX}vpmaddwd ymm1, ymm1, [r9 + TAVXDecodeConst.MergeAdd];{$ELSE}db $C4,$C1,$75,$F5,$89,$A0,$00,$00,$00;{$ENDIF}
-       {$IFDEF DELPHIAVX}vpshufb ymm1, ymm1, [r9 + TAVXDecodeConst.ShufOut];{$ELSE}db $C4,$C2,$75,$00,$89,$C0,$00,$00,$00;{$ENDIF}
-       {$IFDEF DELPHIAVX}vpermd ymm0, ymm8, ymm1;{$ELSE}db $C4,$E2,$3D,$36,$C1;{$ENDIF}
+       {$IFDEF AVXSUP}vpmaddubsw ymm1, ymm0, [r9 + TAVXDecodeConst.Merge];{$ELSE}db $C4,$C2,$7D,$04,$89,$80,$00,$00,$00;{$ENDIF} 
+       {$IFDEF AVXSUP}vpmaddwd ymm1, ymm1, [r9 + TAVXDecodeConst.MergeAdd];{$ELSE}db $C4,$C1,$75,$F5,$89,$A0,$00,$00,$00;{$ENDIF} 
+       {$IFDEF AVXSUP}vpshufb ymm1, ymm1, [r9 + TAVXDecodeConst.ShufOut];{$ELSE}db $C4,$C2,$75,$00,$89,$C0,$00,$00,$00;{$ENDIF} 
+       {$IFDEF AVXSUP}vpermd ymm0, ymm8, ymm1;                        {$ELSE}db $C4,$E2,$3D,$36,$C1;{$ENDIF} 
 
-       {$IFDEF DELPHIAVX}vmovdqu [rcx], ymm0;{$ELSE}db $C5,$FE,$7F,$01;{$ENDIF}
+       {$IFDEF AVXSUP}vmovdqu [rcx], ymm0;                            {$ELSE}db $C5,$FE,$7F,$01;{$ENDIF} 
        add rcx, 24;
        add rdx, 32;
 
@@ -196,10 +199,10 @@ asm
 
    @wrongEncoding:
 
-   {$IFDEF DELPHIAVX}vmovupd ymm8, dYmm8;{$ELSE}db $C5,$7D,$10,$45,$DC;{$ENDIF}
-   {$IFDEF DELPHIAVX}vmovupd ymm7, dYMM7;{$ELSE}db $C5,$FD,$10,$7D,$BC;{$ENDIF}
-   {$IFDEF DELPHIAVX}vmovupd ymm6, dYMM6;{$ELSE}db $C5,$FD,$10,$75,$9C;{$ENDIF}
-   {$IFDEF FPC}vzeroupper;{$ELSE}db $C5,$F8,$77;{$ENDIF}
+   {$IFDEF AVXSUP}vmovupd ymm8, dYmm8;                                {$ELSE}db $C5,$7D,$10,$45,$DC;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd ymm7, dYMM7;                                {$ELSE}db $C5,$FD,$10,$7D,$BC;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd ymm6, dYMM6;                                {$ELSE}db $C5,$FD,$10,$75,$9C;{$ENDIF} 
+   {$IFDEF AVXSUP}vzeroupper;                                         {$ELSE}db $C5,$F8,$77;{$ENDIF} 
 end;
 
 {$ENDREGION}

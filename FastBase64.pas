@@ -34,6 +34,7 @@ implementation
 {$DEFINE x86}
 {$ENDIF}
 
+{$IFDEF FPC} {$ASMMODE intel} {$S-} {$DEFINE DELPHIAVX} {$ENDIF}
 
 uses FastBase64Const, {$IFDEF x64}AVXBase64_x64{$ELSE}AVXBase64_x86{$ENDIF};
 
@@ -653,11 +654,8 @@ begin
      Result := true;
 end;
 
-procedure GetCPUID(Param: Cardinal; out Registers: TRegisters);
+procedure GetCPUID(Param: Cardinal; out Registers: TRegisters); assembler;
 var iRBX, iRDI : int64;
-{$IFDEF FPC}
-begin
-{$ENDIF}
 asm
    mov iRBX, rbx;
    mov iRDI, rdi;
@@ -676,15 +674,11 @@ asm
    // epilog
    mov rbx, iRBX;
    mov rdi, IRDI;
-{$IFDEF FPC}
-end;
-{$ENDIF}
 end;
 
 {$ELSE}
 
-function IsCPUID_Available: Boolean; register;
-{$IFDEF FPC} begin {$ENDIF}
+function IsCPUID_Available: Boolean; assembler;
 asm
    PUSHFD                 {save EFLAGS to stack}
    POP     EAX            {store EFLAGS in EAX}
@@ -699,10 +693,8 @@ asm
    MOV     EAX, True      {yes, CPUID is available}
 @exit:
 end;
-{$IFDEF FPC} end; {$ENDIF}
 
-procedure GetCPUID(Param: Cardinal; var Registers: TRegisters);
-{$IFDEF FPC} begin {$ENDIF}
+procedure GetCPUID(Param: Cardinal; var Registers: TRegisters); assembler;
 asm
    PUSH    EBX                         {save affected registers}
    PUSH    EDI
@@ -718,7 +710,6 @@ asm
    POP     EDI                         {restore registers}
    POP     EBX
 end;
-{$IFDEF FPC} end; {$ENDIF}
 
 {$ENDIF}
 
