@@ -12,6 +12,8 @@ type
   TYMMDW = Array[0..7] of UInt32;
   TYMMI = Array[0..7] of Int32;
 
+  TXMM = Array[0..3] of Uint32; // for register save
+
 
 // ###########################################
 // #### Decoding constants

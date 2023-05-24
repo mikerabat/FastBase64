@@ -132,7 +132,7 @@ end;
 // a compressed version from: https://github.com/lemire/fastbase64/blob/master/src/fastavxbase64.c
 function AVXBase64Decode( output : PByte; src : PAnsiChar; srcLen : integer; avxConst : PAVXDecodeConst ) : boolean; assembler;
 // 64bit: rcx = output, rdx = src, r8 : srcLen, r9 : avxConst
-var dYmm8, dYmm7, dymm6 : TYMMDW;
+var dXmm8, dXmm7, dXmm6 : TXMM;
 asm
    {$IFDEF UNIX}
    // Linux uses a diffrent ABI -> copy over the registers so they meet with winABI
@@ -145,9 +145,9 @@ asm
    mov rdx, rsi;
    {$ENDIF}
 
-   {$IFDEF AVXSUP}vmovupd dYmm8, ymm8;                                {$ELSE}db $C5,$7D,$11,$45,$DC;{$ENDIF} 
-   {$IFDEF AVXSUP}vmovupd dYmm7, ymm7;                                {$ELSE}db $C5,$FD,$11,$7D,$BC;{$ENDIF} 
-   {$IFDEF AVXSUP}vmovupd dYmm6, ymm6;                                {$ELSE}db $C5,$FD,$11,$75,$9C;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd dXmm8, xmm8;                                {$ELSE}db $C5,$79,$11,$45,$EC;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd dXmm7, xmm7;                                {$ELSE}db $C5,$F9,$11,$7D,$DC;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd dXmm6, xmm6;                                {$ELSE}db $C5,$F9,$11,$75,$CC;{$ENDIF} 
 
 
    sub r8, 32;
@@ -199,9 +199,9 @@ asm
 
    @wrongEncoding:
 
-   {$IFDEF AVXSUP}vmovupd ymm8, dYmm8;                                {$ELSE}db $C5,$7D,$10,$45,$DC;{$ENDIF} 
-   {$IFDEF AVXSUP}vmovupd ymm7, dYMM7;                                {$ELSE}db $C5,$FD,$10,$7D,$BC;{$ENDIF} 
-   {$IFDEF AVXSUP}vmovupd ymm6, dYMM6;                                {$ELSE}db $C5,$FD,$10,$75,$9C;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd xmm8, dXmm8;                                {$ELSE}db $C5,$79,$10,$45,$EC;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd xmm7, dXMM7;                                {$ELSE}db $C5,$F9,$10,$7D,$DC;{$ENDIF} 
+   {$IFDEF AVXSUP}vmovupd xmm6, dXMM6;                                {$ELSE}db $C5,$F9,$10,$75,$CC;{$ENDIF} 
    {$IFDEF AVXSUP}vzeroupper;                                         {$ELSE}db $C5,$F8,$77;{$ENDIF} 
 end;
 

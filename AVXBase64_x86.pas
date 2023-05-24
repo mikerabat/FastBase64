@@ -144,7 +144,7 @@ asm
        {$IFDEF AVXSUP}vmovupd ymm0, [edx];                            {$ELSE}db $C5,$FD,$10,$02;{$ENDIF} 
 
        {$IFDEF AVXSUP}vpsrld ymm1, ymm0, 4;                           {$ELSE}db $C5,$F5,$72,$D0,$04;{$ENDIF} 
-       {$IFDEF AVXSUP}vpand ymm1, ymm1, [esi + TAVXDecodeConst.Mask2F];{$ELSE}db $C5,$F5,$DB,$4E,$60;{$ENDIF}
+       {$IFDEF AVXSUP}vpand ymm1, ymm1, [esi + TAVXDecodeConst.Mask2F];{$ELSE}db $C5,$F5,$DB,$4E,$60;{$ENDIF} 
        {$IFDEF AVXSUP}vpshufb ymm2, ymm6, ymm1;                       {$ELSE}db $C4,$E2,$4D,$00,$D1;{$ENDIF} // hi
        {$IFDEF AVXSUP}vpcmpeqb ymm3, ymm0, [esi + TAVXDecodeConst.Mask2F];{$ELSE}db $C5,$FD,$74,$5E,$60;{$ENDIF} // eq2f
        {$IFDEF AVXSUP}vpaddb ymm3, ymm3, ymm1;                        {$ELSE}db $C5,$E5,$FC,$D9;{$ENDIF} // add epqf hi_nibbles
