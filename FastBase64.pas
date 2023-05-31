@@ -574,7 +574,7 @@ begin
      restLen := len;
      pBuf := buf;
      pDest := dest;
-     if (len > 28) and IsAVXPresent then
+     if (len > 32) and IsAVXPresent then
      begin
           restLen := AVXBase64Encode( PByte( dest ), buf, len, loc_AVX_enc );
 
