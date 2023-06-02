@@ -16,7 +16,7 @@ uses
   Windows,
   {$ELSE}
   WinApi.Windows,
-  {$ENDIF}
+  {$IFEND}
   Classes,
   idCoderMime,
   FastBase64 in 'FastBase64.pas',
