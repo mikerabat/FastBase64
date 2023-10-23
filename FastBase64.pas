@@ -556,8 +556,14 @@ end;
 
 function Base64Encode( buf : PByte; len : integer; doPad : boolean = True ) : RawByteString;
 var destLen : integer;
+    leftOver : integer;
 begin
      destLen := ( (len + 2) div 3)*4;
+     if not doPad then
+     begin
+          leftOver := len mod 3;
+          destLen := destLen - Integer(leftover > 0)*(3 - leftover);
+     end;
      SetLength(Result, destLen);
 
      Base64Encode(@Result[1], buf, len, doPad);
@@ -589,11 +595,27 @@ begin
 end;
 
 function Base64Decode( base64Str : RawByteString; var dest : TByteDynArray; isPadded : boolean = True ) : boolean;
+var numChunks, leftOver : integer;
+    destLen : integer;
 begin
      if Length(base64Str) = 0 then
         exit(false);
 
-     SetLength(dest, ((Length(base64Str) + 3) div 4) * 3);
+     if isPadded and (Length(base64Str) mod 4 <> 0) then
+        exit(false);
+
+     numChunks := Length(base64Str) div 4;
+     leftOver := Length(base64Str) mod 4;
+
+     destLen := numChunks*3 + Integer(leftOver > 0)*(leftOver - 1);
+
+     // each padding character reduces the output size by one...
+     if (base64Str[Length(base64Str)] = CHARPAD) then
+        dec(destLen);
+     if (base64Str[Length(base64Str) - 1] = CHARPAD) then
+        dec(destLen);
+
+     SetLength(dest, destlen);
      Result := Base64Decode( base64Str, PByte( PAnsiChar(dest) ), isPadded);
 end;
 
